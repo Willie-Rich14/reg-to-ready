@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reg-to-Ready</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reg-to-Ready">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#16202B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: SaaS app shell — fixed left rail of sections, top bar with workspace, content pane; rail becomes a bottom tab bar on phones. */
+:root{
+  --bg:#F3F4F1; --panel:#FFFFFF; --rail:#16202B; --rail-ink:#C9D3DD; --rail-active:#FFFFFF;
+  --ink:#18212C; --muted:#5B6672; --line:#DADFE2; --soft:#E8EEF3;
+  --accent:#1F5C8C; --accent-ink:#FFFFFF; --stamp:#2D6A4F;
+  --high:#B3261E; --med:#A86400; --low:#3D6E3A; --info:#1F5C8C;
+  --high-bg:#FBE9E7; --med-bg:#FFF3DF; --low-bg:#E8F2E6; --info-bg:#E3EDF6;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161D; --panel:#18212B; --rail:#0B1016; --rail-ink:#9AA6B2; --rail-active:#FFFFFF;
+  --ink:#E6EBF0; --muted:#9AA6B2; --line:#2A3542; --soft:#1F2C3A;
+  --accent:#6FA8DC; --accent-ink:#0E1620; --stamp:#6BBF94;
+  --high:#F2867D; --med:#E8B15C; --low:#8FCB89; --info:#8DBBE6;
+  --high-bg:#3A1D1B; --med-bg:#382A12; --low-bg:#1C3020; --info-bg:#1A2B3C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161D; --panel:#18212B; --rail:#0B1016; --rail-ink:#9AA6B2; --rail-active:#FFFFFF;
+  --ink:#E6EBF0; --muted:#9AA6B2; --line:#2A3542; --soft:#1F2C3A;
+  --accent:#6FA8DC; --accent-ink:#0E1620; --stamp:#6BBF94;
+  --high:#F2867D; --med:#E8B15C; --low:#8FCB89; --info:#8DBBE6;
+  --high-bg:#3A1D1B; --med-bg:#382A12; --low-bg:#1C3020; --info-bg:#1A2B3C; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100%}
+.rail{background:var(--rail);color:var(--rail-ink);padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.logo{font-family:var(--display);font-weight:700;font-size:22px;color:var(--rail-active);padding:4px 10px 18px}
+.logo span{color:#6FA8DC}
+.nav{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:inherit;font-size:14px;font-weight:500;padding:9px 10px;border-radius:5px;cursor:pointer;text-align:left}
+.nav svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}
+.nav[aria-current="page"]{background:rgba(255,255,255,.09);color:var(--rail-active)}
+.nav:hover{color:var(--rail-active)}
+.rail .spacer{flex:1}
+.rail .ws{font-size:12px;padding:10px;border-top:1px solid rgba(255,255,255,.1)}
+.rail .ws b{display:block;color:var(--rail-active);font-weight:600}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.crumbs{font-size:14px;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs b{color:var(--ink);font-weight:600}
+.top-right{display:flex;align-items:center;gap:10px;flex:none}
+.demo{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--med);background:var(--med-bg);padding:3px 8px;border-radius:3px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--accent)}
+.content{padding-inline:24px;padding-block:22px 48px;max-width:1180px;width:100%}
+
+h1{font-family:var(--display);font-weight:600;font-size:26px;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 20px;max-width:70ch}
+h2{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;min-width:0}
+.cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:18px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.kpi .n{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .k{font-size:13px;color:var(--muted)}
+.kpi.save .n{color:var(--stamp)}
+
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:580px}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--display);font-weight:600;letter-spacing:.05em;text-transform:uppercase;font-size:12px;color:var(--muted)}
+tr.click{cursor:pointer}
+tr.click:hover td{background:var(--soft)}
+.id{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);white-space:nowrap}
+.pill{display:inline-block;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.pill.High,.pill.s-draft{color:var(--high);background:var(--high-bg)}
+.pill.Medium,.pill.s-review{color:var(--med);background:var(--med-bg)}
+.pill.Low,.pill.s-ready,.pill.s-exported{color:var(--low);background:var(--low-bg)}
+.pill.s-intake{color:var(--info);background:var(--info-bg)}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%;background:var(--stamp)}
+
+.btn{font:600 14px var(--body);border-radius:4px;padding:9px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.55;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.deadline{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.deadline:last-child{border-bottom:0}
+.deadline .when{font-family:var(--mono);font-size:12px;color:var(--muted);width:72px;flex:none}
+.deadline .what{font-size:14px}
+
+.ws-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
+.steps{display:flex;flex-wrap:wrap;gap:0;margin:0 0 18px;padding:0;list-style:none;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.steps li{flex:1 1 120px;padding:10px 14px;font-size:13px;color:var(--muted);border-right:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.steps li:last-child{border-right:0}
+.steps li .dot{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:11px;flex:none}
+.steps li.done{color:var(--ink)}
+.steps li.done .dot{background:var(--stamp);border-color:var(--stamp);color:var(--panel)}
+.steps li.now{color:var(--ink);font-weight:600;background:var(--soft)}
+.steps li.now .dot{border-color:var(--accent);color:var(--accent)}
+
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--soft);border-radius:4px;padding:10px 12px}
+.stat .n{font-family:var(--display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat.save .n{color:var(--stamp)}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{font:600 13px var(--body);background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:8px 12px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .c{font-family:var(--mono);font-weight:400;font-size:11px;margin-left:4px}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{border:1px solid var(--line);border-radius:4px;padding:12px 14px;min-width:0}
+.item .head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:4px}
+.item .t{font-weight:600}
+.item p{margin:4px 0 0}
+.item .foot{display:flex;justify-content:flex-end;margin-top:8px}
+.meta{font-size:12px;color:var(--muted)}
+.approved{font:600 12px var(--body);color:var(--stamp)}
+.story em{font-style:normal;color:var(--muted)}
+ul.ac{margin:8px 0 0;padding-left:18px;font-size:14px}
+ol.tsteps{margin:6px 0 0;padding-left:20px;font-size:14px}
+.exp{margin-top:6px;font-size:14px}
+.exp b{color:var(--stamp)}
+.ok{color:var(--stamp);font-weight:600}
+.gap{color:var(--high);font-weight:600}
+.exports{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);align-items:center}
+.status{font-size:13px;color:var(--muted)}
+.status.err{color:var(--high)}
+
+.form{display:grid;gap:14px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;font:14px/1.5 var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px}
+.field textarea{min-height:200px;resize:vertical}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.progress{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.progress li{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.progress li .dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);flex:none}
+.progress li.done{color:var(--ink)}
+.progress li.done .dot{background:var(--stamp);border-color:var(--stamp)}
+.progress li.now{color:var(--ink);font-weight:600}
+.progress li.now .dot{border-color:var(--accent);border-top-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.progress li.now .dot{animation:none}}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.card .t{font-weight:600}
+.card p{margin:0;font-size:14px;color:var(--muted);flex:1}
+.card .row{margin-top:8px}
+
+.roi{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.slider{margin-bottom:16px}
+.slider .lab{display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px}
+.slider .lab b{font-family:var(--mono);font-weight:500}
+.slider input{width:100%;accent-color:var(--accent)}
+.big{font-family:var(--display);font-weight:700;font-size:44px;line-height:1;color:var(--stamp);font-variant-numeric:tabular-nums}
+.roi-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.roi-line b{font-variant-numeric:tabular-nums}
+.fine{font-size:12px;color:var(--muted);margin-top:12px}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:5px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+
+@media (max-width:1000px){.cols,.roi{grid-template-columns:minmax(0,1fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));z-index:10;gap:0}
+  .logo,.rail .spacer,.rail .ws{display:none}
+  .nav{flex-direction:column;gap:2px;font-size:11px;padding:6px 4px;text-align:center;width:auto;flex:1}
+  .content{padding-inline:16px;padding-block:18px 96px}
+  .topbar{padding:10px 16px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .two{grid-template-columns:minmax(0,1fr)}
+  .avatar{display:none}
+  .steps{flex-wrap:nowrap;overflow-x:auto}
+  .steps li{flex:0 0 auto;padding:8px 12px;font-size:12px}
+}
+html,body{margin:0;overscroll-behavior:none}
+body{-webkit-tap-highlight-color:transparent}
+@media (display-mode: standalone){.topbar{padding-top:max(10px,env(safe-area-inset-top,0px))}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="rail" aria-label="Sections">
+    <div class="logo">Reg<span>-to-</span>Ready</div>
+    <button class="nav" data-r="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
+    <button class="nav" data-r="changes"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>Changes</button>
+    <button class="nav" data-r="new"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>New change</button>
+    <button class="nav" data-r="value"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15l4-4 3 3 5-6"/></svg>Value</button>
+    <button class="nav" data-r="integrations"><svg viewBox="0 0 24 24"><path d="M9 7V3M15 7V3M7 7h10v5a5 5 0 0 1-10 0z"/><path d="M12 17v4"/></svg>Integrations</button>
+    <div class="spacer"></div>
+    <div class="ws">Workspace<b>Demo Life Insurance Co.</b>Fictional demo data</div>
+  </nav>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="top-right"><span class="demo">Demo mode</span><div class="avatar" aria-hidden="true">DU</div></div>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- Demo data (fictional workspace, illustrative content) ---------- */
+const VM22 = {
+  impact:[
+    {area:"Actuarial modeling",system:"Projection / valuation engine",severity:"High",note:"New stochastic and deterministic reserve runs using prescribed economic scenarios."},
+    {area:"Policy administration",system:"Annuity admin platform",severity:"High",note:"Contract-level data feeds needed: product type, guarantees, crediting strategy, issue cohort."},
+    {area:"Data warehouse",system:"Valuation data mart",severity:"Medium",note:"New fields for reserving category and exclusion test results; history must be kept."},
+    {area:"Financial reporting",system:"Statutory GL and annual statement",severity:"Medium",note:"Reserve results must reconcile to statutory reporting, including transition amounts."},
+    {area:"Governance",system:"Assumption and model governance",severity:"Medium",note:"Assumption margins and model changes need documented approval for the PBR report."},
+    {area:"Reporting",system:"BI / management reporting",severity:"Low",note:"Dashboards for reserve movement by category and phase-in status."}
+  ],
+  requirements:[
+    {id:"BR-01",title:"Assign reserving categories",priority:"High",text:"The system shall assign every in-scope non-variable annuity contract to a VM-22 reserving category and keep that assignment with an effective date."},
+    {id:"BR-02",title:"Run exclusion tests",priority:"High",text:"The system shall run and store the exclusion test for each reserving category to determine whether stochastic modeling is required, with inputs and result retained for audit."},
+    {id:"BR-03",title:"Calculate reserve components",priority:"High",text:"The valuation engine shall calculate the stochastic reserve, deterministic reserve and standard projection amount, and report the final reserve per category."},
+    {id:"BR-04",title:"Use prescribed scenarios",priority:"High",text:"Reserve runs shall use the prescribed economic scenario set, and each run shall record the scenario set version used."},
+    {id:"BR-05",title:"Track phase-in status",priority:"Medium",text:"The system shall record, per legal entity and product block, whether VM-22 has been elected during the transition period and from which valuation date."},
+    {id:"BR-06",title:"Reconcile to statutory reporting",priority:"Medium",text:"Reserve results shall reconcile to the statutory general ledger, with differences above a set tolerance flagged before close."},
+    {id:"BR-07",title:"Govern assumptions",priority:"Medium",text:"Assumptions and margins used in each run shall be versioned, approved and linked to the run that used them."}
+  ],
+  stories:[
+    {id:"US-01",req:"BR-01",as:"valuation actuary",want:"each contract tagged with its reserving category",so:"reserves are grouped correctly from the first run",points:5,ac:["Every in-scope contract has exactly one category","Contracts with missing data land on an exception report","Category changes keep the prior value and effective date"]},
+    {id:"US-02",req:"BR-02",as:"valuation actuary",want:"the exclusion test run and saved per category",so:"I can show auditors why stochastic modeling was or wasn't required",points:8,ac:["Test result is stored with all inputs","Reruns match within tolerance","Failed categories route to the stochastic run automatically"]},
+    {id:"US-03",req:"BR-03",as:"financial reporting analyst",want:"the reserve components for each category in one output",so:"I can review the final reserve without asking the modeling team",points:8,ac:["Output shows stochastic, deterministic and standard projection amounts","Final reserve rule is applied and labeled","Totals tie to the run summary"]},
+    {id:"US-04",req:"BR-04",as:"model risk reviewer",want:"each run to record which scenario set it used",so:"a run can be reproduced later",points:3,ac:["Scenario set version is stamped on every run","A run on an unapproved scenario set is blocked"]},
+    {id:"US-05",req:"BR-05",as:"appointed actuary",want:"the phase-in election tracked by entity and block",so:"the right method is applied on each valuation date",points:3,ac:["Election date and scope are editable only by approved roles","Method selection follows the stored election"]},
+    {id:"US-06",req:"BR-06",as:"controller",want:"reserves reconciled to the statutory GL before close",so:"we don't file a mismatch",points:5,ac:["Reconciliation runs on demand and on schedule","Breaks over tolerance are flagged with amount and category"]},
+    {id:"US-07",req:"BR-07",as:"assumption owner",want:"assumption sets versioned and approved",so:"the PBR report can cite exactly what was used",points:5,ac:["Each set has an approver and approval date","Runs link to the assumption set version used"]}
+  ],
+  tests:[
+    {id:"TC-01",story:"US-01",title:"Every contract gets one reserving category",steps:["Load 500 test contracts across product types","Run category assignment","Count contracts by category"],expected:"500 assigned; none unassigned; none in two categories."},
+    {id:"TC-02",story:"US-01",title:"Missing data goes to exceptions",steps:["Load 10 contracts with blank product type","Run category assignment"],expected:"All 10 appear on the exception report."},
+    {id:"TC-03",story:"US-02",title:"Exclusion test result is stored with inputs",steps:["Run the exclusion test for one category","Open the stored result"],expected:"Result plus every input value is retained and viewable."},
+    {id:"TC-04",story:"US-02",title:"Failed category routes to stochastic run",steps:["Force a category to fail the exclusion test","Start valuation"],expected:"That category is included in the stochastic run."},
+    {id:"TC-05",story:"US-03",title:"Reserve components appear in output",steps:["Run valuation for a test category","Open output"],expected:"All three components shown; final reserve labeled."},
+    {id:"TC-06",story:"US-04",title:"Unapproved scenario set is blocked",steps:["Point a run at an unapproved scenario set","Start the run"],expected:"Run is blocked with a message naming the scenario set."},
+    {id:"TC-07",story:"US-05",title:"Method follows phase-in election",steps:["Set entity A elected, entity B not elected","Run valuation for both"],expected:"Entity A uses VM-22; entity B uses the prior method."},
+    {id:"TC-08",story:"US-06",title:"GL break over tolerance is flagged",steps:["Post a GL amount differing from the reserve beyond tolerance","Run reconciliation"],expected:"Break flagged with amount and category before close."}
+  ]
+};
+const LDTI = {
+  impact:[
+    {area:"Actuarial modeling",system:"Liability valuation engine",severity:"High",note:"Annual cash-flow assumption unlocking and quarterly discount-rate remeasurement by cohort."},
+    {area:"Finance",system:"GAAP sub-ledger",severity:"High",note:"Split of remeasurement between net income and other comprehensive income."},
+    {area:"Data warehouse",system:"Cohort data store",severity:"Medium",note:"Persist cohort membership, locked-in and current discount rates."},
+    {area:"Disclosures",system:"Financial reporting tool",severity:"Medium",note:"Disaggregated rollforwards by cohort grouping."},
+    {area:"Controls",system:"SOX control library",severity:"Low",note:"New key controls over assumption updates and rate sourcing."}
+  ],
+  requirements:[
+    {id:"BR-01",title:"Maintain annual cohorts",priority:"High",text:"The system shall assign each contract to an annual cohort at issue and keep that assignment unchanged."},
+    {id:"BR-02",title:"Store discount rates",priority:"High",text:"The system shall store the locked-in discount rate per cohort and the current discount rate per reporting period."},
+    {id:"BR-03",title:"Unlock cash-flow assumptions",priority:"High",text:"The valuation engine shall update the liability for actual experience and revised cash-flow assumptions at least annually, recording the effect in net income."},
+    {id:"BR-04",title:"Remeasure for rate changes",priority:"Medium",text:"The system shall remeasure the liability each period for discount-rate changes and post the effect to other comprehensive income."},
+    {id:"BR-05",title:"Produce rollforwards",priority:"Medium",text:"The reporting tool shall produce disaggregated rollforward disclosures by cohort grouping that tie to the sub-ledger."}
+  ],
+  stories:[
+    {id:"US-01",req:"BR-01",as:"valuation actuary",want:"every contract locked to its issue-year cohort",so:"liabilities are grouped correctly over time",points:3,ac:["Cohort is set at issue","Cohort can't be edited after first valuation"]},
+    {id:"US-02",req:"BR-02",as:"finance analyst",want:"locked-in and current rates stored side by side",so:"I can explain every remeasurement",points:5,ac:["Both rates visible per cohort","Rate source and date are recorded"]},
+    {id:"US-03",req:"BR-03",as:"assumption owner",want:"to run the annual assumption update",so:"the liability reflects current expectations",points:8,ac:["Update effect is posted to net income","Before and after values are retained"]},
+    {id:"US-04",req:"BR-04",as:"controller",want:"rate-change effects posted to OCI each period",so:"income isn't distorted by rate swings",points:5,ac:["OCI posting matches the remeasurement","Entries carry cohort detail"]},
+    {id:"US-05",req:"BR-05",as:"external reporting lead",want:"rollforwards generated automatically",so:"disclosures are ready at close",points:5,ac:["Rollforward ties to the sub-ledger","Grouping matches the disclosure policy"]}
+  ],
+  tests:[
+    {id:"TC-01",story:"US-01",title:"Cohort locks after first valuation",steps:["Issue a test contract","Run valuation","Try to edit its cohort"],expected:"Edit is refused and logged."},
+    {id:"TC-02",story:"US-02",title:"Both rates are stored",steps:["Run a quarter-end valuation","Open a cohort's rate record"],expected:"Locked-in and current rates shown with source and date."},
+    {id:"TC-03",story:"US-03",title:"Assumption update hits net income",steps:["Change a mortality assumption","Run the annual update"],expected:"Effect posts to net income; before/after retained."},
+    {id:"TC-04",story:"US-04",title:"Rate change posts to OCI",steps:["Move the current rate up 50 bps","Run valuation"],expected:"Remeasurement posts to OCI with cohort detail."},
+    {id:"TC-05",story:"US-05",title:"Rollforward ties out",steps:["Generate the rollforward","Compare to sub-ledger"],expected:"Ending balances agree with no unexplained difference."},
+    {id:"TC-06",story:"US-03",title:"Rerun gives the same result",steps:["Rerun the annual update with identical inputs"],expected:"Results match the first run exactly."}
+  ]
+};
+const TEMPLATES = {
+  vm22:{label:"NAIC VM-22 (non-variable annuity PBR)",pkg:VM22,text:"NAIC Valuation Manual VM-22 introduces principle-based reserving for non-variable annuities (fixed, fixed indexed and payout annuities), with a transition period before it becomes mandatory. Reserves move to a framework built on a stochastic reserve, a deterministic reserve and a standard projection amount using prescribed economic scenarios. Companies must group contracts into reserving categories, run exclusion tests, document assumptions and margins, and produce a PBR actuarial report."},
+  ldti:{label:"ASC 944 / LDTI (long-duration contracts)",pkg:LDTI,text:"Under ASC 944 as amended by LDTI, the liability for future policy benefits must be updated for actual experience and cash-flow assumptions at least annually with the effect in net income, and the discount rate updated each period with changes in other comprehensive income. Contracts are grouped into annual cohorts, and disclosures require disaggregated rollforwards."},
+  other:{label:"Other regulation or business change",pkg:null,text:""}
+};
+let CHANGES = [
+  {id:"CHG-104",name:"VM-22 PBR for non-variable annuities",reg:"NAIC VM-22",team:"Valuation",status:"review",due:"Wk 6",pkg:clone(VM22),approved:new Set(["BR-01","BR-02","BR-03","BR-04"]),exported:false},
+  {id:"CHG-107",name:"LDTI annual assumption update",reg:"ASC 944 / LDTI",team:"Finance",status:"ready",due:"Wk 3",pkg:clone(LDTI),approved:new Set(["BR-01","BR-02","BR-03","BR-04","BR-05"]),exported:false},
+  {id:"CHG-111",name:"Annuity illustration disclosure refresh",reg:"State insurance rule",team:"Product",status:"intake",due:"Wk 10",pkg:null,approved:new Set(),exported:false},
+  {id:"CHG-098",name:"Statutory reporting field additions",reg:"Annual statement",team:"Financial reporting",status:"exported",due:"Done",pkg:clone(LDTI),approved:new Set(["BR-01","BR-02","BR-03","BR-04","BR-05"]),exported:true}
+];
+const STATUS = {intake:"Intake",draft:"Drafting",review:"In review",ready:"Ready for UAT",exported:"Exported"};
+const STEP_ORDER = ["intake","draft","review","ready","exported"];
+
+/* ---------- Helpers ---------- */
+function clone(o){return JSON.parse(JSON.stringify(o))}
+const $ = id => document.getElementById(id);
+function esc(s){return String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function sev(s){s=String(s||"").toLowerCase();return s.startsWith("h")?"High":s.startsWith("l")?"Low":"Medium"}
+function hours(p){return p?Math.round(p.requirements.length*2+p.stories.length+p.tests.length*.75):0}
+function coverage(p){if(!p||!p.requirements.length)return 0;const c=p.requirements.filter(r=>{const st=p.stories.filter(s=>s.req===r.id);return st.length&&p.tests.some(t=>st.some(s=>s.id===t.story))}).length;return Math.round(c/p.requirements.length*100)}
+function pill(status){return `<span class="pill s-${status}">${STATUS[status]}</span>`}
+let toastT; function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+function csvCell(s){s=String(s??"");return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+
+let sample=null, downloads=null, route="dashboard", current=null, tab="impact";
+
+/* ---------- Router ---------- */
+function go(r,id){route=r;current=id||null;tab="impact";
+  try{history.replaceState(null,"","#"+(r==="change"?"changes":r))}catch{}
+  render();window.scrollTo(0,0)}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>go(b.dataset.r));
+
+function render(){
+  document.querySelectorAll(".nav").forEach(b=>b.setAttribute("aria-current",(b.dataset.r===route||(route==="change"&&b.dataset.r==="changes"))?"page":"false"));
+  const v=$("view");
+  const map={dashboard:viewDashboard,changes:viewChanges,change:viewChange,new:viewNew,value:viewValue,integrations:viewIntegrations};
+  (map[route]||viewDashboard)(v);
+}
+function crumbs(html){$("crumbs").innerHTML=html}
+
+/* ---------- Dashboard ---------- */
+function viewDashboard(v){
+  crumbs("<b>Dashboard</b>");
+  const withPkg=CHANGES.filter(c=>c.pkg);
+  const reqs=withPkg.reduce((a,c)=>a+c.pkg.requirements.length,0);
+  const tests=withPkg.reduce((a,c)=>a+c.pkg.tests.length,0);
+  const hrs=withPkg.reduce((a,c)=>a+hours(c.pkg),0);
+  const active=CHANGES.filter(c=>c.status!=="exported").length;
+  v.innerHTML=`
+  <h1>Good morning</h1><p class="sub">Regulatory changes in flight for Demo Life Insurance Co., and what's ready to hand to delivery.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="n">${active}</div><div class="k">active changes</div></div>
+    <div class="kpi"><div class="n">${reqs}</div><div class="k">requirements drafted</div></div>
+    <div class="kpi"><div class="n">${tests}</div><div class="k">UAT test cases ready</div></div>
+    <div class="kpi save"><div class="n">~${hrs} h</div><div class="k">analyst drafting time saved</div></div>
+  </div>
+  <div class="cols">
+    <section class="panel"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">Changes in flight</h2><button class="btn sm" id="d-new">New change</button></div>
+      <div class="tbl-wrap">${changesTable(CHANGES)}</div></section>
+    <div class="stack">
+      <section class="panel"><h2>Coming up</h2>
+        <div class="deadline"><span class="when">Wk 3</span><span class="what">LDTI assumption update hand-off to UAT</span></div>
+        <div class="deadline"><span class="when">Wk 6</span><span class="what">VM-22 requirements sign-off with valuation</span></div>
+        <div class="deadline"><span class="when">Wk 10</span><span class="what">Illustration disclosure intake review</span></div>
+        <p class="meta" style="margin:8px 0 0">Demo schedule, not real regulatory dates.</p>
+      </section>
+      <section class="panel"><h2>Audit readiness</h2>
+        ${withPkg.map(c=>`<div class="deadline"><span class="when">${c.id}</span><span class="what" style="flex:1">${coverage(c.pkg)}% traced<div class="bar" style="margin-top:4px"><i style="width:${coverage(c.pkg)}%"></i></div></span></div>`).join("")}
+      </section>
+    </div>
+  </div>`;
+  $("d-new").onclick=()=>go("new");
+  bindRows(v);
+}
+function changesTable(list){
+  return `<table><thead><tr><th>ID</th><th>Change</th><th>Team</th><th>Status</th><th>Approved</th><th>Due</th></tr></thead><tbody>${list.map(c=>{
+    const n=c.pkg?c.pkg.requirements.length:0, a=c.approved.size;
+    return `<tr class="click" tabindex="0" data-id="${c.id}"><td class="id">${c.id}</td><td><b style="font-weight:600">${esc(c.name)}</b><div class="meta">${esc(c.reg)}</div></td><td>${esc(c.team)}</td><td>${pill(c.status)}</td><td>${n?`${a}/${n}<div class="bar" style="margin-top:4px"><i style="width:${Math.round(a/n*100)}%"></i></div>`:"—"}</td><td class="meta">${esc(c.due)}</td></tr>`}).join("")}</tbody></table>`;
+}
+function bindRows(v){v.querySelectorAll("tr.click").forEach(r=>{const open=()=>go("change",r.dataset.id);r.onclick=open;r.onkeydown=e=>{if(e.key==="Enter")open()}})}
+
+/* ---------- Changes list ---------- */
+function viewChanges(v){
+  crumbs("<b>Changes</b>");
+  v.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-start"><div><h1>Changes</h1><p class="sub">Every regulatory or business change, from intake to export.</p></div><button class="btn" id="c-new">New change</button></div>
+  <section class="panel"><div class="tbl-wrap">${changesTable(CHANGES)}</div></section>`;
+  $("c-new").onclick=()=>go("new");bindRows(v);
+}
+
+/* ---------- Change workspace ---------- */
+function viewChange(v){
+  const c=CHANGES.find(x=>x.id===current); if(!c){go("changes");return}
+  crumbs(`Changes / <b>${esc(c.id)}</b>`);
+  const idx=STEP_ORDER.indexOf(c.status);
+  const steps=[["intake","Intake"],["draft","Draft"],["review","Review"],["ready","Ready for UAT"],["exported","Exported"]];
+  let body="";
+  if(!c.pkg){
+    body=`<section class="panel"><h2>Intake</h2><p style="margin-top:0">No delivery package yet. Paste the source text and draft one.</p><button class="btn" id="w-draft">Draft package</button></section>`;
+  } else {
+    const p=c.pkg;
+    body=`<div class="stats">
+      <div class="stat"><div class="n">${p.impact.length}</div><div class="k">systems impacted</div></div>
+      <div class="stat"><div class="n">${p.requirements.length}</div><div class="k">requirements</div></div>
+      <div class="stat"><div class="n">${p.stories.length}</div><div class="k">user stories</div></div>
+      <div class="stat"><div class="n">${p.tests.length}</div><div class="k">UAT tests</div></div>
+      <div class="stat save"><div class="n">~${hours(p)} h</div><div class="k">time saved</div></div></div>
+    <section class="panel"><div class="tabs" role="tablist" id="tabs"></div><div id="tabview"></div>
+      <div class="exports">
+        <button class="btn" id="push">${c.exported?"Re-sync to Jira & qTest":"Send to Jira & qTest"}</button>
+        <button class="btn ghost" id="copy">Copy Jira CSV</button>
+        <button class="btn ghost" id="dlj" ${downloads?"":"hidden"}>Download Jira CSV</button>
+        <button class="btn ghost" id="dlq" ${downloads?"":"hidden"}>Download qTest CSV</button>
+      </div></section>`;
+  }
+  v.innerHTML=`<div class="ws-head"><div><div class="id">${esc(c.id)} · ${esc(c.reg)}</div><h1>${esc(c.name)}</h1><div class="row">${pill(c.status)}<span class="meta">${esc(c.team)} · due ${esc(c.due)}</span></div></div>
+    ${c.pkg?`<div class="row"><button class="btn ghost sm" id="approve-all">Approve all</button></div>`:""}</div>
+    <ol class="steps">${steps.map(([k,l],i)=>`<li class="${i<idx?"done":i===idx?"now":""}"><span class="dot">${i<idx?"✓":i+1}</span>${l}</li>`).join("")}</ol>${body}`;
+  if(!c.pkg){$("w-draft").onclick=()=>go("new");return}
+  renderTabs(c);
+  $("approve-all").onclick=()=>{c.pkg.requirements.forEach(r=>c.approved.add(r.id));advance(c);toast("All requirements approved.");viewChange(v)};
+  $("push").onclick=()=>push(c,v);
+  $("copy").onclick=async()=>{try{await navigator.clipboard.writeText(jiraCSV(c));toast("Copied "+c.pkg.stories.length+" stories as CSV.")}catch{toast("Copy is blocked here. Use Download instead.")}};
+  if(downloads){$("dlj").onclick=()=>save(c.id.toLowerCase()+"-jira.csv",jiraCSV(c));$("dlq").onclick=()=>save(c.id.toLowerCase()+"-qtest.csv",qtestCSV(c))}
+}
+function advance(c){if(c.pkg&&c.approved.size===c.pkg.requirements.length&&STEP_ORDER.indexOf(c.status)<3)c.status="ready"}
+function push(c,v){
+  if(c.approved.size<c.pkg.requirements.length){toast("Approve every requirement before sending.");return}
+  const b=$("push");b.disabled=true;b.textContent="Sending…";
+  setTimeout(()=>{c.exported=true;c.status="exported";toast(`Demo: ${c.pkg.stories.length} stories and ${c.pkg.tests.length} test cases sent.`);viewChange(v)},1200);
+}
+const TABS=[["impact","Impact"],["requirements","Requirements"],["stories","User stories"],["tests","UAT tests"],["trace","Traceability"]];
+function renderTabs(c){
+  const p=c.pkg, cnt={impact:p.impact.length,requirements:p.requirements.length,stories:p.stories.length,tests:p.tests.length,trace:coverage(p)+"%"};
+  $("tabs").innerHTML=TABS.map(([k,l])=>`<button class="tab" role="tab" aria-selected="${k===tab}" data-k="${k}">${l}<span class="c">${cnt[k]}</span></button>`).join("");
+  $("tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.dataset.k;renderTabs(c)});
+  const tv=$("tabview"); let h="";
+  if(tab==="impact")h=`<div class="list">${p.impact.map(i=>`<div class="item"><div class="head"><span class="pill ${sev(i.severity)}">${sev(i.severity)}</span><span class="t">${esc(i.area)}</span><span class="meta">${esc(i.system)}</span></div><p>${esc(i.note)}</p></div>`).join("")}</div>`;
+  if(tab==="requirements")h=`<div class="list">${p.requirements.map(r=>`<div class="item"><div class="head"><span class="id">${esc(r.id)}</span><span class="t">${esc(r.title)}</span><span class="pill ${sev(r.priority)}">${sev(r.priority)}</span></div><p>${esc(r.text)}</p><div class="foot">${c.approved.has(r.id)?`<span class="approved">✓ Approved</span>`:`<button class="btn ghost sm" data-ap="${esc(r.id)}">Approve</button>`}</div></div>`).join("")}</div>`;
+  if(tab==="stories")h=`<div class="list">${p.stories.map(s=>`<div class="item"><div class="head"><span class="id">${esc(s.id)}</span><span class="meta">traces to ${esc(s.req)} · ${esc(s.points)} pts</span></div><div class="story"><em>As a</em> ${esc(s.as)}, <em>I want</em> ${esc(s.want)}, <em>so that</em> ${esc(s.so)}.</div><ul class="ac">${(s.ac||[]).map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+  if(tab==="tests")h=`<div class="list">${p.tests.map(t=>`<div class="item"><div class="head"><span class="id">${esc(t.id)}</span><span class="t">${esc(t.title)}</span><span class="meta">tests ${esc(t.story)}</span></div><ol class="tsteps">${(t.steps||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ol><div class="exp"><b>Expected:</b> ${esc(t.expected)}</div></div>`).join("")}</div>`;
+  if(tab==="trace")h=`<div class="tbl-wrap"><table><thead><tr><th>Requirement</th><th>Stories</th><th>Tests</th><th>Sign-off</th><th>Status</th></tr></thead><tbody>${p.requirements.map(r=>{const st=p.stories.filter(s=>s.req===r.id),tc=p.tests.filter(t=>st.some(s=>s.id===t.story)),ok=st.length&&tc.length;
+    return `<tr><td><span class="id">${esc(r.id)}</span> ${esc(r.title)}</td><td>${st.map(s=>`<span class="id">${esc(s.id)}</span>`).join(", ")||"—"}</td><td>${tc.map(t=>`<span class="id">${esc(t.id)}</span>`).join(", ")||"—"}</td><td>${c.approved.has(r.id)?'<span class="ok">Approved</span>':'<span class="meta">Pending</span>'}</td><td class="${ok?"ok":"gap"}">${ok?"Covered":"Gap: needs "+(st.length?"tests":"stories")}</td></tr>`}).join("")}</tbody></table></div>`;
+  tv.innerHTML=h;
+  tv.querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>{c.approved.add(b.dataset.ap);advance(c);toast(b.dataset.ap+" approved.");viewChange($("view"))});
+}
+function jiraCSV(c){const p=c.pkg,rows=[["Summary","Issue Type","Description","Acceptance Criteria","Story Points","Labels"]];
+  p.stories.forEach(s=>{const r=p.requirements.find(x=>x.id===s.req);rows.push([`${s.id} ${s.want}`,"Story",`As a ${s.as}, I want ${s.want}, so that ${s.so}. Traces to ${s.req}${r?": "+r.title:""}.`,(s.ac||[]).map(a=>"- "+a).join("\n"),s.points,c.id])});
+  return rows.map(r=>r.map(csvCell).join(",")).join("\n")}
+function qtestCSV(c){const rows=[["Test Case ID","Name","Linked Story","Steps","Expected Result"]];
+  c.pkg.tests.forEach(t=>rows.push([t.id,t.title,t.story,(t.steps||[]).map((x,i)=>`${i+1}. ${x}`).join("\n"),t.expected]));
+  return rows.map(r=>r.map(csvCell).join(",")).join("\n")}
+async function save(name,data){try{await downloads.save({filename:name,data});toast("Saved "+name+".")}catch(e){if(!e||e.code!=="cancelled")toast("Couldn't save the file.")}}
+
+/* ---------- New change ---------- */
+let genCtl=null;
+function viewNew(v){
+  crumbs("Changes / <b>New change</b>");
+  v.innerHTML=`<h1>New change</h1><p class="sub">Paste the regulation, bulletin or business need. Reg-to-Ready drafts the full delivery package for your team to review.</p>
+  <div class="cols"><section class="panel"><form class="form" id="nf">
+    <div class="two"><div class="field"><label for="n-name">Change name</label><input id="n-name" value="VM-22 phase-in, second product block"></div>
+    <div class="field"><label for="n-tpl">Regulation</label><select id="n-tpl">${Object.entries(TEMPLATES).map(([k,t])=>`<option value="${k}">${esc(t.label)}</option>`).join("")}</select></div></div>
+    <div class="two"><div class="field"><label for="n-team">Owning team</label><select id="n-team"><option>Valuation</option><option>Finance</option><option>Product</option><option>Financial reporting</option></select></div>
+    <div class="field"><label for="n-due">Target</label><input id="n-due" value="Wk 12"></div></div>
+    <div class="field"><label for="n-src">Source text</label><textarea id="n-src"></textarea></div>
+    <div class="row"><button class="btn" type="submit" id="n-go">Draft package</button><button class="btn ghost" type="button" id="n-stop" hidden>Stop</button></div>
+  </form></section>
+  <section class="panel"><h2>What happens next</h2><ul class="progress" id="prog">
+    ${["Read the change","Map impacted systems","Draft requirements","Write user stories","Build UAT test cases","Link the audit trail"].map(s=>`<li><span class="dot"></span>${s}</li>`).join("")}
+  </ul><p class="status" id="n-status" style="margin-top:14px"></p>
+  <p class="fine">${sample?"Custom text is drafted live by Claude on the viewer's account; the first run asks permission.":"Pick a regulation from the library to draft its package. Custom-text drafting is part of the full product."}</p></section></div>`;
+  const tpl=$("n-tpl"),src=$("n-src");
+  const fill=()=>{src.value=TEMPLATES[tpl.value].text;src.placeholder="Paste the regulation, bulletin or business change here…"};
+  tpl.onchange=fill;fill();
+  $("n-stop").onclick=()=>genCtl&&genCtl.abort();
+  $("nf").onsubmit=async e=>{
+    e.preventDefault();
+    const text=src.value.trim(),key=tpl.value,st=$("n-status");st.classList.remove("err");
+    if(!text){st.textContent="Paste the source text first.";return}
+    const items=[...$("prog").children];const set=i=>items.forEach((li,j)=>li.className=j<i?"done":j===i?"now":"");
+    $("n-go").disabled=true;let pkg=null;
+    const template=TEMPLATES[key].pkg, edited=text!==TEMPLATES[key].text;
+    try{
+      if(template&&!edited){for(let i=0;i<items.length;i++){set(i);await new Promise(r=>setTimeout(r,450))}pkg=clone(template)}
+      else if(sample){
+        genCtl=new AbortController();$("n-stop").hidden=false;let i=0;set(0);
+        const tk=setInterval(()=>{if(i<items.length-1)set(++i)},4000);
+        try{pkg=await sample.json(prompt(text),{signal:genCtl.signal});}finally{clearInterval(tk);$("n-stop").hidden=true}
+        if(!valid(pkg))throw{code:"invalid_json"};
+      } else {st.classList.add("err");st.textContent="Live drafting isn't available in this view. Pick a library regulation to see a full package.";set(-1);return}
+      set(items.length);
+      const id="CHG-"+(112+CHANGES.length);
+      CHANGES.unshift({id,name:$("n-name").value||"New change",reg:TEMPLATES[key].label.split(" (")[0],team:$("n-team").value,status:"review",due:$("n-due").value||"—",pkg,approved:new Set(),exported:false});
+      toast("Package drafted. Review and approve.");go("change",id);
+    }catch(err){set(-1);
+      if(err&&err.code==="cancelled")st.textContent="Stopped.";
+      else{st.classList.add("err");st.textContent=({not_granted:"Live drafting is off for this view.",rate_limited:"Too many requests. Try again in a minute.",invalid_json:"The draft came back in the wrong shape. Try again.",prompt_too_large:"That text is too long. Paste a shorter excerpt."})[err&&err.code]||"Something went wrong. Try again."}
+    }finally{const b=$("n-go");if(b)b.disabled=false}
+  };
+}
+function valid(p){return p&&Array.isArray(p.impact)&&Array.isArray(p.requirements)&&p.requirements.length&&Array.isArray(p.stories)&&Array.isArray(p.tests)}
+function prompt(text){return `You are a senior insurance business systems analyst (SAFe Product Owner). Turn the change below into a delivery package for an insurer's IT and finance teams.
+Reply with ONLY one JSON object:
+{"impact":[{"area":string,"system":string,"severity":"High"|"Medium"|"Low","note":one sentence}],
+ "requirements":[{"id":"BR-01","title":short,"priority":"High"|"Medium"|"Low","text":"The system shall ..."}],
+ "stories":[{"id":"US-01","req":"BR-01","as":role,"want":string,"so":string,"points":1|2|3|5|8,"ac":[2-3 testable criteria]}],
+ "tests":[{"id":"TC-01","story":"US-01","title":short,"steps":[2-3 steps],"expected":one sentence}]}
+Rules: 4-6 impact items, 5-7 requirements, one story per requirement, 6-9 tests covering every story. Plain language. Don't invent section numbers, dollar figures or dates not in the text.
+CHANGE:
+${text.slice(0,12000)}`}
+
+/* ---------- Value (ROI) ---------- */
+const ROI={analysts:25,changes:4,rate:85,reduction:60};
+function viewValue(v){
+  crumbs("<b>Value</b>");
+  v.innerHTML=`<h1>What it's worth to your team</h1><p class="sub">Move the sliders to match your organization. The math updates as you go.</p>
+  <div class="roi"><section class="panel">
+    ${slider("analysts","Business analysts",5,100,1,"")}
+    ${slider("changes","Changes per analyst per year",1,12,1,"")}
+    ${slider("rate","Loaded cost per analyst hour",50,175,5,"$")}
+    ${slider("reduction","Drafting time Reg-to-Ready removes",30,80,5,"%")}
+  </section>
+  <section class="panel"><h2>Estimated annual value</h2><div class="big" id="r-dollars"></div><div class="meta" style="margin:6px 0 14px">in analyst time returned per year</div>
+    <div class="roi-line"><span>Delivery packages per year</span><b id="r-pk"></b></div>
+    <div class="roi-line"><span>Manual drafting hours per package</span><b>~29 h</b></div>
+    <div class="roi-line"><span>Hours returned per year</span><b id="r-hrs"></b></div>
+    <div class="roi-line"><span>Full-time analysts' worth of capacity</span><b id="r-fte"></b></div>
+    <p class="fine">Estimates. Hours per package come from the VM-22 demo package (7 requirements, 7 stories, 8 tests at about 2 h, 1 h and 45 min each to draft by hand). A full-time analyst is taken as 1,800 working hours a year.</p>
+  </section></div>`;
+  v.querySelectorAll("input[type=range]").forEach(i=>i.oninput=()=>{ROI[i.dataset.k]=+i.value;calc()});calc();
+}
+function slider(k,l,min,max,step,u){return `<div class="slider"><div class="lab"><label for="r-${k}">${l}</label><b id="o-${k}"></b></div><input type="range" id="r-${k}" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${ROI[k]}" data-u="${u}"></div>`}
+function calc(){
+  const fmt=n=>n.toLocaleString("en-US");
+  $("o-analysts").textContent=ROI.analysts;$("o-changes").textContent=ROI.changes;$("o-rate").textContent="$"+ROI.rate;$("o-reduction").textContent=ROI.reduction+"%";
+  const pk=ROI.analysts*ROI.changes, hrs=Math.round(pk*29*ROI.reduction/100);
+  $("r-pk").textContent=fmt(pk);$("r-hrs").textContent=fmt(hrs)+" h";$("r-fte").textContent=(hrs/1800).toFixed(1);
+  $("r-dollars").textContent="$"+fmt(Math.round(hrs*ROI.rate/1000)*1000);
+}
+
+/* ---------- Integrations ---------- */
+function viewIntegrations(v){
+  crumbs("<b>Integrations</b>");
+  const list=[["Jira","Stories land in your backlog with acceptance criteria and links back to requirements.","Connected"],["qTest","UAT test cases sync with steps, expected results and story links.","Connected"],["Azure DevOps","Work items and test plans for teams on Microsoft tooling.","Available"],["Confluence","Publish requirements documents and the traceability matrix as pages.","Available"],["SharePoint","Store signed-off packages with your audit evidence.","Available"],["CSV export","Download any package for tools not listed here.","Built in"]];
+  v.innerHTML=`<h1>Integrations</h1><p class="sub">Reg-to-Ready sends work to the tools your teams already use, so nobody changes how they work.</p>
+  <div class="cards">${list.map(([n,d,s])=>`<div class="card"><div class="row" style="justify-content:space-between"><span class="t">${n}</span><span class="pill ${s==="Connected"?"s-ready":s==="Built in"?"s-intake":"s-review"}">${s}</span></div><p>${d}</p></div>`).join("")}</div>
+  <p class="fine">Demo mode: connections are illustrated, not live.</p>`;
+}
+
+/* ---------- Boot ---------- */
+const startHash=(location.hash||"").slice(1);
+if(["dashboard","changes","new","value","integrations"].includes(startHash))route=startHash;
+render();
+(async()=>{
+  if(!window.claude||!claude.use)return;
+  try{sample=await claude.use("sample")}catch{sample=null}
+  try{downloads=await claude.use("downloads")}catch{downloads=null}
+  if(route==="new"||route==="change")render();
+})();
+
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+</script>
+
+</body>
+</html>
